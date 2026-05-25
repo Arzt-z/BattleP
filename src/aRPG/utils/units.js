@@ -62,7 +62,7 @@ export function equipItem(unit, item) {
       result = addStat(result, stat, -bonus);
     }
   }
-
+  recalculate(result);
   return result;
 }
 
@@ -75,7 +75,7 @@ export function unequipItem(unit, slot) {
   for (const [stat, bonus] of Object.entries(item.statBonus)) {
     result = addStat(result, stat, -bonus);
   }
-
+  recalculate(result);
   return result;
 }
 
@@ -180,7 +180,7 @@ export function Goblin(name) {
 export function levelUp(unit, lvl) {
   let result = { ...unit };
 
-  for (let i = 0; i < lvl * 4; i++) {
+  for (let i = 1; i < lvl * 4; i++) {
     const g = result.statsGrowth;
     const total = g.VitalityGrowth + g.strengthGrowth + g.agilityGrowth + g.dexteryGrowth + g.intelligenceGrowth;
     const roll = Math.random() * total; // float between 0 and total
@@ -193,18 +193,44 @@ export function levelUp(unit, lvl) {
     else if (roll < (cursor += g.intelligenceGrowth)) result = addStat(result, "intelligence", 1);
   }
 
-  return setLevel(result, lvl);
+  setLevel(result, lvl);
+  return recalculate(result);
 }
 
 //---
 
 
-export function createGoblin(name, lvl) {
-  return levelUp(Goblin(name), lvl);
-}
-
 export function createHuman(name, lvl) {
-  return levelUp(Human(name), lvl);
+  const unit = levelUp(Human(name), lvl);
+  return { ...unit, hp: unit.maxHp, stamina: unit.maxStamina };
+}
+
+export function createGoblin(name, lvl) {
+  const unit = levelUp(Goblin(name), lvl);
+  return { ...unit, hp: unit.maxHp, stamina: unit.maxStamina };
 }
 
 
+// defines how stats translate to derived values
+export function recalculate(unit) {
+  const { Vitality, strength, agility, dextery, intelligence } = unit.stats;
+
+  const maxHp      = Math.floor(Vitality * 10 + unit.level * 5);
+  const maxStamina = Math.floor(unit.level * 2 + 100);
+
+  // check if a weapon is equipped
+  const weapon = unit.equipment?.righthand;
+  const weaponAtk = weapon?.attackPower || 0;
+
+  // base attack from stats + weapon
+  const attackPower = Math.floor(strength * 1.5 + agility * 0.5 + dextery * 0.3 + weaponAtk);
+
+  return {
+    ...unit,
+    maxHp,
+    hp: unit.hp === null ? maxHp : Math.min(unit.hp, maxHp),
+    maxStamina,
+    stamina: unit.stamina === null ? maxStamina : Math.min(unit.stamina, maxStamina),
+    attackPower,
+  };
+}

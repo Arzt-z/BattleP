@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createHuman, createGoblin } from "./utils/Units";
 import { equipItem, addToInventory } from "./utils/units";
 import { IronSword, LeatherChest } from "./utils/items";
-
+import { recalculate } from "./utils/Units";
 
 
 function App() {
